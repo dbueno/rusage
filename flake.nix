@@ -20,16 +20,16 @@
             (path: _:
             !elem (baseNameOf path) [ ".git" "result" ]) ./.;
           buildPhase = ''
-            CFLAGS=-Wall
-            make rusage.o
-            $CC $CFLAGS -o crusage rusage.o
+            set -x
+            export CFLAGS=-Wall
+            make crusage
           '';
           installPhase = ''
             mkdir -p $out/bin
             mkdir -p $out/etc
 
             cp crusage $out/etc
-            cp rusage.sh $out/bin/rusage
+            cp rusage $out/bin/rusage
 
             substituteInPlace $out/bin/rusage \
               --replace 'crusage' "$out/etc/crusage"

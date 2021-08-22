@@ -22,3 +22,15 @@ Usage
     Signals received:        0
     IPC messages:            sent=0; received=0
     Context switches:        voluntary=0; involuntary=4
+
+Building
+--------
+
+If you're not using Nix, you can do:
+
+::
+
+    export CFLAGS=-Wall
+    make crusage
+
+Then put ``rusage`` wherever you like and point it to ``crusage``.
