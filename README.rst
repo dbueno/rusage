@@ -1,6 +1,7 @@
 rusage
 ======
 
+Like `time(1)` but for resource usage.
 Usage
 -----
 
