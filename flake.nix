@@ -38,5 +38,9 @@
       in {
         packages = { inherit rusage; };
         defaultPackage = rusage;
+        devShell = pkgs.mkShell {
+          inputsFrom = [ rusage ];
+          CFLAGS = "-Wall -Werror";
+        };
       });
 }
