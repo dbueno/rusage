@@ -34,6 +34,5 @@ If you're not using Nix, you can do:
 ::
 
     export CFLAGS=-Wall
-    make crusage
+    make rusage
 
-Then put ``rusage`` wherever you like and point it to ``crusage``.

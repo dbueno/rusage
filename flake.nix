@@ -22,17 +22,12 @@
           buildPhase = ''
             set -x
             export CFLAGS=-Wall
-            make crusage
+            make rusage
           '';
           installPhase = ''
             mkdir -p $out/bin
-            mkdir -p $out/etc
 
-            cp crusage $out/etc
             cp rusage $out/bin/rusage
-
-            substituteInPlace $out/bin/rusage \
-              --replace 'crusage' "$out/etc/crusage"
           '';
         };
       in {
