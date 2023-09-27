@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <spawn.h>
 #include <libgen.h>
+#include <signal.h>
 
 typedef struct {
   struct rusage ru;
@@ -73,8 +74,8 @@ int main(int argc, char** argv, char** envp) {
   resources res;
 
   if (!argv[1]) {
-    fprintf(stderr, "NULL argv[1]\n");
-    return -1;
+    fprintf(stderr, "No command\n");
+    exit(127);
   }
 
   measure_start(&res);
@@ -89,6 +90,7 @@ int main(int argc, char** argv, char** envp) {
   }
 
   int child_status;
+  int exit_code = 126;
   do {
     r = waitpid(child, &child_status, 0);
     if (r == -1) {
@@ -100,6 +102,20 @@ int main(int argc, char** argv, char** envp) {
   measure_end(&res);
 
   fprintf(stderr, "\n");
+
+  if (WIFSIGNALED(child_status)) {
+    int termsig = WTERMSIG(child_status);
+    fprintf(stderr, "Program terminated with signal: %s\n", strsignal(termsig));
+    exit_code = 125 - termsig;
+  } else if (WIFEXITED(child_status)) {
+    exit_code = WEXITSTATUS(child_status);
+    if (exit_code != 0) {
+      fprintf(stderr, "Program terminated with non-zero status: %d\n", exit_code);
+    }
+  }
+
   printResources(NULL, &res);
-  return 0;
+
+
+  return exit_code;
 }
