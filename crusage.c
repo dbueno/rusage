@@ -6,6 +6,8 @@
 #include <string.h>
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <spawn.h>
+#include <libgen.h>
 
 typedef struct {
   struct rusage ru;
@@ -67,7 +69,7 @@ void measure_end(resources *res) {
 }
 
 // Takes a single argument designating the command to run.
-int main(int argc, char** argv) {
+int main(int argc, char** argv, char** envp) {
   resources res;
 
   if (!argv[1]) {
@@ -77,16 +79,23 @@ int main(int argc, char** argv) {
 
   measure_start(&res);
 
-  int r = system(argv[1]);
-  if (-1 == r) {
-    fprintf(stderr, "system() error: %d: %s\n", errno, strerror(errno));
-    return r;
+  pid_t child;
+  char *program = argv[1];
+  argv[1] = basename(program);
+  int r = posix_spawnp(&child, program, NULL, NULL, &argv[1], envp);
+  if (r != 0) {
+    fprintf(stderr, "posix_spawn() error: %d: %s\n", r, strerror(r));
+    exit(127);
   }
 
-  if (127 == r) {
-    fprintf(stderr, "system() shell could not be executed\n");
-    return r;
-  }
+  int child_status;
+  do {
+    r = waitpid(child, &child_status, 0);
+    if (r == -1) {
+      fprintf(stderr, "waitpid() error: %d: %s\n", errno, strerror(errno));
+      exit(127);
+    }
+  } while (WIFSTOPPED(child_status));
 
   measure_end(&res);
 
