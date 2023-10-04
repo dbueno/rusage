@@ -29,10 +29,4 @@ Usage
 Building
 --------
 
-If you're not using Nix, you can do:
-
-::
-
-    export CFLAGS=-Wall
-    make rusage
-
+Just use cargo.
