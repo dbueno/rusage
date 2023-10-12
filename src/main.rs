@@ -10,6 +10,11 @@ use std::time::{Duration, Instant};
 
 fn main() -> ExitCode {
     let args: Vec<OsString> = std::env::args_os().collect();
+
+    if args.len() < 2 {
+        eprintln!("error: no command to run");
+        return usage();
+    }
     let mut cmd = Command::new(&args[1]);
     cmd.args(&args[2..]);
 
@@ -49,6 +54,12 @@ fn main() -> ExitCode {
     }
 
     ExitCode::from(exit_code as u8)
+}
+
+fn usage() -> ExitCode {
+    eprintln!("Usage: rusage cmd [args ...]");
+    eprintln!("Runs cmd with args and reports on its resource usage");
+    return ExitCode::from(0)
 }
 
 fn print_resources(wall_time: Duration, ru: &Usage) {
