@@ -8,11 +8,14 @@ use std::os::unix::process::ExitStatusExt;
 use std::process::{Command, ExitCode};
 use std::time::{Duration, Instant};
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
+
 fn main() -> ExitCode {
     let args: Vec<OsString> = std::env::args_os().collect();
 
     if args.len() < 2 {
-        eprintln!("error: no command to run");
+        eprintln!("error: no command to run\n");
         return usage();
     }
     let mut cmd = Command::new(&args[1]);
@@ -57,8 +60,9 @@ fn main() -> ExitCode {
 }
 
 fn usage() -> ExitCode {
-    eprintln!("Usage: rusage cmd [args ...]");
-    eprintln!("Runs cmd with args and reports on its resource usage");
+    eprintln!("rusage {VERSION}");
+    eprintln!("Usage: rusage command [args ...]");
+    eprintln!("{DESCRIPTION}");
     return ExitCode::from(0)
 }
 
