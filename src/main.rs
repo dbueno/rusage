@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::ffi::OsString;
 use std::os::unix::process::ExitStatusExt;
-use std::process::{Command, ExitCode};
+use std::process::{Command, ExitCode, Stdio};
 use std::time::{Duration, Instant};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -18,8 +18,15 @@ fn main() -> ExitCode {
         eprintln!("error: no command to run\n");
         return usage();
     }
-    let mut cmd = Command::new(&args[1]);
-    cmd.args(&args[2..]);
+    let mut quiet = false;
+    let mut args_start = 1;
+    if args[1] == "-q" {
+        quiet = true;
+        args_start = 2;
+    }
+    let mut cmd = Command::new(&args[args_start]);
+    cmd.args(&args[args_start+1..]);
+    let cmd = if quiet { cmd.stdout(Stdio::null()).stderr(Stdio::null()) } else { &mut cmd };
 
     let start_instant = Instant::now();
     let child_status = cmd.status().expect("Could not start child");
@@ -61,8 +68,9 @@ fn main() -> ExitCode {
 
 fn usage() -> ExitCode {
     eprintln!("rusage {VERSION}");
-    eprintln!("Usage: rusage command [args ...]");
+    eprintln!("Usage: rusage [-q] command [args ...]");
     eprintln!("{DESCRIPTION}");
+    eprintln!("-q: quiet, no stdout or stderr for command");
     return ExitCode::from(0)
 }
 
