@@ -28,7 +28,7 @@
         devShell = pkgs.mkShell {
           inputsFrom = [ rusage ];
           packages = with pkgs; [
-            cargo-edit rustfmt
+            cargo-edit rustfmt pkgs.rust-analyzer pkgs.python3
           ];
         };
       });
