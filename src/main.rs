@@ -4,7 +4,10 @@ use nix::sys::time::TimeValLike;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::ffi::OsString;
+use std::fs::File;
+use std::io::{self, Write};
 use std::os::unix::process::ExitStatusExt;
+use std::path::Path;
 use std::process::{Command, ExitCode, Stdio};
 use std::time::{Duration, Instant};
 
@@ -19,14 +22,23 @@ fn main() -> ExitCode {
         return usage();
     }
     let mut quiet = false;
+    let mut json_file = None;
     let mut args_start = 1;
     if args[1] == "-q" {
         quiet = true;
         args_start = 2;
     }
+    if args[args_start] == "--json" {
+        json_file = Some(args[args_start + 1].clone());
+        args_start += 2;
+    }
     let mut cmd = Command::new(&args[args_start]);
-    cmd.args(&args[args_start+1..]);
-    let cmd = if quiet { cmd.stdout(Stdio::null()).stderr(Stdio::null()) } else { &mut cmd };
+    cmd.args(&args[args_start + 1..]);
+    let cmd = if quiet {
+        cmd.stdout(Stdio::null()).stderr(Stdio::null())
+    } else {
+        &mut cmd
+    };
 
     let start_instant = Instant::now();
     let child_status = cmd.status().expect("Could not start child");
@@ -57,8 +69,15 @@ fn main() -> ExitCode {
         panic!("Unknown kind of termination: {}", child_status);
     };
 
-    eprintln!();
-    print_resources(wall_time, &child_usage);
+    match json_file {
+        Some(filename) => {
+            print_resources_json(Path::new(filename.as_os_str()), wall_time, &child_usage)
+        }
+        None => {
+            eprintln!();
+            print_resources(wall_time, &child_usage)
+        }
+    }
     if let Some(message) = message {
         eprintln!("{}", message);
     }
@@ -71,7 +90,9 @@ fn usage() -> ExitCode {
     eprintln!("Usage: rusage [-q] command [args ...]");
     eprintln!("{DESCRIPTION}");
     eprintln!("-q: quiet, no stdout or stderr for command");
-    return ExitCode::from(0)
+    eprintln!("--json <file>: output to json file instead of stderr");
+    eprintln!("Note: -q must come before --json, if both present");
+    return ExitCode::from(0);
 }
 
 fn print_resources(wall_time: Duration, ru: &Usage) {
@@ -107,4 +128,54 @@ fn print_resources(wall_time: Duration, ru: &Usage) {
         ru.voluntary_context_switches(),
         ru.involuntary_context_switches()
     );
+}
+
+fn print_resources_json(filename: &Path, wall_time: Duration, ru: &Usage) {
+    let mut file = File::create(filename).expect("Failed to create file");
+    let user_time = Duration::from_micros(ru.user_time().num_microseconds().try_into().unwrap());
+    let system_time =
+        Duration::from_micros(ru.system_time().num_microseconds().try_into().unwrap());
+    let mut do_write = || -> io::Result<()> {
+        writeln!(file, "{{")?;
+        writeln!(file, "\"wall time\": {:.3},", wall_time.as_secs_f32())?;
+        writeln!(file, "\"user time\": {:.3},", user_time.as_secs_f32())?;
+        writeln!(file, "\"system time\": {:.3},", system_time.as_secs_f32())?;
+        writeln!(file, "\"max rss\": {},", ru.max_rss())?;
+        writeln!(
+            file,
+            "\"integral shared memory\": {},",
+            ru.shared_integral()
+        )?;
+        writeln!(
+            file,
+            "\"integral unshared data\": {},",
+            ru.unshared_data_integral()
+        )?;
+        writeln!(
+            file,
+            "\"integral unshared stack\": {},",
+            ru.unshared_stack_integral()
+        )?;
+        writeln!(file, "\"page reclaims\": {},", ru.minor_page_faults())?;
+        writeln!(file, "\"page faults\": {},", ru.major_page_faults())?;
+        writeln!(file, "\"swaps\": {},", ru.full_swaps())?;
+        writeln!(file, "\"block reads\": {},", ru.block_reads())?;
+        writeln!(file, "\"block writes\": {},", ru.block_writes())?;
+        writeln!(file, "\"signals received\": {},", ru.signals())?;
+        writeln!(file, "\"ipc sends\": {},", ru.ipc_sends())?;
+        writeln!(file, "\"ipc receives\": {},", ru.ipc_receives())?;
+        writeln!(
+            file,
+            "\"voluntary context switches\": {},",
+            ru.voluntary_context_switches()
+        )?;
+        writeln!(
+            file,
+            "\"involuntary context switches\": {}",
+            ru.involuntary_context_switches()
+        )?;
+        writeln!(file, "}}")?;
+        Ok(())
+    };
+    do_write().expect("Error writing to file");
 }
