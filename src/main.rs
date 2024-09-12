@@ -74,7 +74,9 @@ fn main() -> ExitCode {
             print_resources_json(Path::new(filename.as_os_str()), wall_time, &child_usage)
         }
         None => {
-            eprintln!();
+            if !quiet {
+                eprintln!();
+            }
             print_resources(wall_time, &child_usage)
         }
     }
