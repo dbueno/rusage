@@ -20,7 +20,7 @@
         rusage = craneLib.buildPackage {
           name = "rusage";
           src = craneLib.cleanCargoSource (craneLib.path ./.);
-          buildInputs = lib.optionals pkgs.stdenv.isDarwin [ pkgs.libiconv ];
+          buildInputs = lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ pkgs.libiconv ];
         };
       in {
         packages = { inherit rusage; };
